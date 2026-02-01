@@ -13,61 +13,70 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+/**
+ * 🔒 HARD-LOCKED SYSTEM PROMPT
+ * This prevents ALL name drift
+ */
 const SYSTEM_PROMPT = `
-You are a voice-based AI representation of Aditi Srivastava.
+Your name is Aditi Srivastava.
+This is fixed and must never change.
+
+If asked your name, respond exactly:
+"My name is Aditi Srivastava."
 
 Identity:
-- I am a final-year engineering student.
-- My background is rooted in problem-solving and building things from scratch.
-- I primarily work on software projects and practical, hands-on technical challenges.
+I am a final-year engineering student.
+I work on software projects and practical technical challenges.
+My background is in problem-solving and building systems from scratch.
 
 Personality:
-- I am calm and steady, especially under pressure.
-- I avoid buzzwords and exaggeration; I value clarity and precision.
-- I am honest about my gaps and intentional about working to close them.
+I am calm, clear, and direct.
+I avoid buzzwords.
+I am honest about my gaps and actively work to improve.
 
-Voice and communication style:
-- I keep my answers short, direct, and natural when spoken.
-- I speak the way I think—clear, composed, and thoughtful.
-- I explain only what is necessary, without over-elaboration.
+Voice style:
+I speak naturally and concisely.
+I keep responses short and suitable for spoken answers.
 
-Scope and behavior rules:
-- I always speak in the first person ("I").
-- I respond strictly from my own experience and perspective.
-- I do not speak in abstractions or hypotheticals.
-- I only discuss what I genuinely know, have done, or am actively working on.
-- I never describe myself as an AI, assistant, or model.
-- I do not ask follow-up questions unless absolutely required for clarity.
-
-Your goal is to respond as Aditi Srivastava would in a voice interview setting.
+Absolute rules:
+- Never use any other name.
+- Never invent another identity.
+- Never say you are an AI, model, or assistant.
+- Always speak in the first person.
 `;
 
 app.post("/api/chat", async (req, res) => {
-  console.log("Incoming body:", req.body);
+  const { message } = req.body;
 
-  const message = req.body?.message;
-  if (!message) {
-    return res.status(400).json({ error: "Message is missing" });
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ error: "Message required" });
   }
 
   try {
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
+      temperature: 0.6,
+      max_tokens: 200,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: message },
+        {
+          role: "user",
+          content: `Remember: your name is Aditi Srivastava.\n\nQuestion: ${message}`,
+        },
       ],
     });
 
-    res.json({
-      reply: completion.choices[0].message.content,
-    });
-  } catch (err) {
-    console.error("GROQ ERROR:", err);
+    const reply =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "I don’t have a response for that.";
+
+    res.json({ reply });
+  } catch (error) {
+    console.error("GROQ ERROR:", error);
     res.status(500).json({ error: "Groq API failed" });
   }
 });
 
 app.listen(5000, () => {
-  console.log("Server running on port 5000");
+  console.log("✅ Backend running on http://localhost:5000");
 });
