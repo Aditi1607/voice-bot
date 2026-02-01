@@ -45,7 +45,7 @@ export default function App() {
       setCaption(`You: ${transcript}`);
       setStatus("Thinking...");
 
-      const res = await fetch("http://localhost:5000/api/chat", {
+      const res = await fetch("https://voice-bot-backend-k4dq.onrender.com/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: transcript }),
